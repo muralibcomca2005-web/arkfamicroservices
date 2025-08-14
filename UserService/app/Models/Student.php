@@ -28,11 +28,6 @@ class Student extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function enrollments()
-    {
-        return $this->hasMany(Enrollment::class);
-    }
-
     public static function regNo()
     {
         $year = now()->year;

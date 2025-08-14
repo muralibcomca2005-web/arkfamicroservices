@@ -16,24 +16,4 @@ class Course extends Model
     {
         return $this->hasMany(CourseContent::class);
     }
-
-    public function enrollments()
-    {
-        return $this->hasMany(Enrollment::class, 'course_id');
-    }
-
-    public function students()
-    {
-        return $this->belongsToMany(User::class, 'enrollments', 'course_id', 'student_id');
-    }
-
-    public function teacher()
-    {
-        return $this->belongsTo(Teacher::class, 'teacher_id', 'user_id');
-    }
-
-    public function liveClasses()
-    {
-        return $this->hasMany(LiveClass::class);
-    }
 }

@@ -9,3 +9,4 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::get('/enrolled-courses/{studentId}', [EnrollmentController::class, 'getEnrolledCoursesForStudent']);
+Route::get('/enrollments/by-course-ids', [EnrollmentController::class, 'getEnrollmentsByCourseIds']);

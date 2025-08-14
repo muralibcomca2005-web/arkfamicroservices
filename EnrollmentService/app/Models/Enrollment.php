@@ -12,14 +12,4 @@ class Enrollment extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = ['student_id', 'course_id', 'status', 'completion_status', 'enrolled_at'];
-
-    public function course()
-    {
-        return $this->belongsTo(Course::class, 'course_id');
-    }
-
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'student_id');
-    }
 }

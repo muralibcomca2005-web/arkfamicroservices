@@ -58,4 +58,27 @@ class UserController extends Controller
             'users' => $users
         ], 200);
     }
+
+    public function getUsersByIds(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        if (!is_array($ids)) {
+            $ids = [$ids];
+        }
+        $ids = array_filter(array_map('intval', $ids));
+
+        if (empty($ids)) {
+            return response()->json([
+                'message' => 'No user IDs provided.',
+                'data' => []
+            ], 200);
+        }
+
+        $users = User::whereIn('id', $ids)->with(['teacher', 'student'])->get();
+
+        return response()->json([
+            'message' => 'Users fetched successfully',
+            'data' => $users
+        ], 200);
+    }
 }
