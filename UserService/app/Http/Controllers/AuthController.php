@@ -64,13 +64,19 @@ class AuthController extends Controller
             try {
                 $enrollRes = Http::retry(2, 200)->timeout(5)->get(rtrim($enrollmentServiceBase, '/').'/api/enrolled-courses/'.$user->id);
                 if ($enrollRes->successful()) {
-                    $courseIds = collect($enrollRes->json('data') ?? [])->pluck('id')->values()->all();
+                    $enrolledPayload = $enrollRes->json('data') ?? [];
+                    $courseIds = collect($enrolledPayload)->pluck('id')->values()->all();
+                    // default to whatever enrollment service returned (often already full course objects)
+                    $coursesData = $enrolledPayload;
                     if (!empty($courseIds)) {
                         $coursesRes = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
                             'ids' => $courseIds
                         ]);
                         if ($coursesRes->successful()) {
-                            $coursesData = $coursesRes->json('data') ?? [];
+                            $fetchedCourses = $coursesRes->json('data') ?? [];
+                            if (!empty($fetchedCourses)) {
+                                $coursesData = $fetchedCourses;
+                            }
                         }
                     }
                 }
