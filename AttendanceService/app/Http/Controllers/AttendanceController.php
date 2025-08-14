@@ -7,7 +7,7 @@ use App\Services\AttendanceService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 
 class AttendanceController extends Controller
 {
@@ -41,49 +41,25 @@ class AttendanceController extends Controller
             ], 404);
         }
 
-        $userServiceBase = config('services.users.url');
-        $liveClassServiceBase = config('services.live_classes.url');
-        $courseServiceBase = config('services.courses.url');
-
-        $students = [];
-        $teacher = null;
-        $liveClass = null;
-        $course = null;
-
         $studentIds = $attendanceList->pluck('student_id')->unique()->values()->all();
-        if ($userServiceBase && !empty($studentIds)) {
-            $userRes = Http::timeout(5)->post(rtrim($userServiceBase, '/').'/api/users/by-ids', [
-                'ids' => $studentIds
-            ]);
-            if ($userRes->successful()) {
-                $students = $userRes->json('data') ?? [];
-            }
-        }
+        $students = DB::table('users')->whereIn('id', $studentIds)->get()->toArray();
 
+        $teacher = null;
         $teacherId = $attendanceList->first()->verified_by ?? null;
-        if ($teacherId && $userServiceBase) {
-            $teacherRes = Http::timeout(5)->post(rtrim($userServiceBase, '/').'/api/users/by-ids', [
-                'ids' => [$teacherId]
-            ]);
-            if ($teacherRes->successful()) {
-                $teacher = collect($teacherRes->json('data') ?? [])->first();
-            }
+        if ($teacherId) {
+            $teacher = DB::table('users')->where('id', $teacherId)->first();
+            $teacher = $teacher ? (array) $teacher : null;
         }
 
-        if ($liveClassServiceBase) {
-            $classRes = Http::timeout(5)->post(rtrim($liveClassServiceBase, '/').'/api/live-classes/by-ids', [
-                'ids' => [$liveClassId]
-            ]);
-            if ($classRes->successful()) {
-                $liveClass = collect($classRes->json('data') ?? [])->first();
-                if ($liveClass && $courseServiceBase) {
-                    $courseRes = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
-                        'ids' => [$liveClass['course_id']]
-                    ]);
-                    if ($courseRes->successful()) {
-                        $course = collect($courseRes->json('data') ?? [])->first();
-                    }
-                }
+        $liveClass = DB::table('live_classes')->where('id', $liveClassId)->first();
+        $liveClass = $liveClass ? (array) $liveClass : null;
+        $course = null;
+        if ($liveClass) {
+            $courseRow = DB::table('courses')->where('id', $liveClass['course_id'])->first();
+            if ($courseRow) {
+                $course = (array) $courseRow;
+                $teacherRow = DB::table('users')->where('id', $course['teacher_id'])->first();
+                $course['teacher'] = $teacherRow ? (array) $teacherRow : null;
             }
         }
 
