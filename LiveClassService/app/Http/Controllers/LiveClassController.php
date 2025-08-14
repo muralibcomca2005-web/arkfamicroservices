@@ -6,7 +6,7 @@ use App\Models\Attendance;
 use App\Models\LiveClass;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 
 class LiveClassController extends Controller
 {
@@ -43,19 +43,24 @@ class LiveClassController extends Controller
             ], 200);
         }
 
-        $courseServiceBase = config('services.courses.url');
+        $courseIds = $liveClass->pluck('course_id')->unique()->values()->all();
+        $courses = DB::table('courses')->whereIn('id', $courseIds)->get();
+        $teacherIds = $courses->pluck('teacher_id')->filter()->unique()->values()->all();
+        $teachersById = DB::table('users')->whereIn('id', $teacherIds)->get()->keyBy('id');
         $coursesById = [];
-        if ($courseServiceBase) {
-            $courseIds = $liveClass->pluck('course_id')->unique()->values()->all();
-            if (!empty($courseIds)) {
-                $res = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
-                    'ids' => $courseIds
-                ]);
-                if ($res->successful()) {
-                    $courses = $res->json('data') ?? [];
-                    $coursesById = collect($courses)->keyBy('id')->all();
-                }
-            }
+        foreach ($courses as $c) {
+            $coursesById[$c->id] = [
+                'id' => $c->id,
+                'title' => $c->title,
+                'short_description' => $c->short_description,
+                'description' => $c->description,
+                'teacher_id' => $c->teacher_id,
+                'category' => $c->category,
+                'price' => $c->price,
+                'created_at' => $c->created_at,
+                'updated_at' => $c->updated_at,
+                'teacher' => $c->teacher_id ? (isset($teachersById[$c->teacher_id]) ? (array) $teachersById[$c->teacher_id] : null) : null,
+            ];
         }
 
         $transformed = $liveClass->map(function ($cls) use ($coursesById) {
@@ -74,19 +79,24 @@ class LiveClassController extends Controller
     {
         $liveClass = LiveClass::all();
 
-        $courseServiceBase = config('services.courses.url');
+        $courseIds = $liveClass->pluck('course_id')->unique()->values()->all();
+        $courses = DB::table('courses')->whereIn('id', $courseIds)->get();
+        $teacherIds = $courses->pluck('teacher_id')->filter()->unique()->values()->all();
+        $teachersById = DB::table('users')->whereIn('id', $teacherIds)->get()->keyBy('id');
         $coursesById = [];
-        if ($courseServiceBase) {
-            $courseIds = $liveClass->pluck('course_id')->unique()->values()->all();
-            if (!empty($courseIds)) {
-                $res = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
-                    'ids' => $courseIds
-                ]);
-                if ($res->successful()) {
-                    $courses = $res->json('data') ?? [];
-                    $coursesById = collect($courses)->keyBy('id')->all();
-                }
-            }
+        foreach ($courses as $c) {
+            $coursesById[$c->id] = [
+                'id' => $c->id,
+                'title' => $c->title,
+                'short_description' => $c->short_description,
+                'description' => $c->description,
+                'teacher_id' => $c->teacher_id,
+                'category' => $c->category,
+                'price' => $c->price,
+                'created_at' => $c->created_at,
+                'updated_at' => $c->updated_at,
+                'teacher' => $c->teacher_id ? (isset($teachersById[$c->teacher_id]) ? (array) $teachersById[$c->teacher_id] : null) : null,
+            ];
         }
 
         $transformed = $liveClass->map(function ($cls) use ($coursesById) {

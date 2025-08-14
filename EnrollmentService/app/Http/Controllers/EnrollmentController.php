@@ -8,23 +8,14 @@ use Illuminate\Http\Request;
 use App\Models\Enrollment;
 
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 
 
 class EnrollmentController extends Controller
 {
     public function enrollRequest($courseId, $stu_id)
     {
-        $courseServiceBase = config('services.courses.url');
-        $courseExists = false;
-        if ($courseServiceBase) {
-            $res = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
-                'ids' => [$courseId]
-            ]);
-            if ($res->successful()) {
-                $courseExists = !empty($res->json('data'));
-            }
-        }
+        $courseExists = DB::table('courses')->where('id', $courseId)->exists();
         if (!$courseExists) {
             return response()->json([
                 'message' => 'Course is not found'
@@ -77,33 +68,43 @@ class EnrollmentController extends Controller
         $courseIds = $enroll->pluck('course_id')->unique()->values()->all();
         $studentIds = $enroll->pluck('student_id')->unique()->values()->all();
 
-        $courseServiceBase = config('services.courses.url');
-        $userServiceBase = config('services.users.url');
-
+        $courses = DB::table('courses')->whereIn('id', $courseIds)->get();
+        $courseContent = DB::table('course_contents')->whereIn('course_id', $courseIds)->orderBy('order')->get();
+        $teachers = DB::table('users')->whereIn('id', $courses->pluck('teacher_id')->filter()->unique()->values()->all())->get()->keyBy('id');
+        $contentsByCourseId = collect($courseContent)->groupBy('course_id');
         $coursesById = [];
-        if ($courseServiceBase && !empty($courseIds)) {
-            $res = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
-                'ids' => $courseIds
-            ]);
-            if ($res->successful()) {
-                $coursesById = collect($res->json('data') ?? [])->keyBy('id')->all();
-            }
+        foreach ($courses as $c) {
+            $coursesById[$c->id] = [
+                'id' => $c->id,
+                'title' => $c->title,
+                'short_description' => $c->short_description,
+                'description' => $c->description,
+                'teacher_id' => $c->teacher_id,
+                'category' => $c->category,
+                'price' => $c->price,
+                'created_at' => $c->created_at,
+                'updated_at' => $c->updated_at,
+                'course_content' => array_values(array_map(function ($cc) {
+                    return [
+                        'id' => $cc->id,
+                        'course_id' => $cc->course_id,
+                        'title' => $cc->title,
+                        'body' => $cc->body,
+                        'order' => $cc->order,
+                        'created_at' => $cc->created_at,
+                        'updated_at' => $cc->updated_at,
+                    ];
+                }, ($contentsByCourseId[$c->id] ?? collect())->all())),
+                'teacher' => ($c->teacher_id && isset($teachers[$c->teacher_id])) ? (array) $teachers[$c->teacher_id] : null,
+            ];
         }
 
-        $studentsById = [];
-        if ($userServiceBase && !empty($studentIds)) {
-            $userRes = Http::retry(2, 200)->timeout(5)->post(rtrim($userServiceBase, '/').'/api/users/by-ids', [
-                'ids' => $studentIds
-            ]);
-            if ($userRes->successful()) {
-                $studentsById = collect($userRes->json('data') ?? [])->keyBy('id')->all();
-            }
-        }
+        $studentsById = DB::table('users')->whereIn('id', $studentIds)->get()->keyBy('id');
 
         $data = $enroll->map(function ($enr) use ($coursesById, $studentsById) {
             $arr = $enr->toArray();
             $arr['course'] = $coursesById[$enr->course_id] ?? null;
-            $arr['student'] = $studentsById[$enr->student_id] ?? null;
+            $arr['student'] = isset($studentsById[$enr->student_id]) ? (array) $studentsById[$enr->student_id] : null;
             return $arr;
         });
 
@@ -125,33 +126,43 @@ class EnrollmentController extends Controller
         $courseIds = $enroll->pluck('course_id')->unique()->values()->all();
         $studentIds = $enroll->pluck('student_id')->unique()->values()->all();
 
-        $courseServiceBase = config('services.courses.url');
-        $userServiceBase = config('services.users.url');
-
+        $courses = DB::table('courses')->whereIn('id', $courseIds)->get();
+        $courseContent = DB::table('course_contents')->whereIn('course_id', $courseIds)->orderBy('order')->get();
+        $teachers = DB::table('users')->whereIn('id', $courses->pluck('teacher_id')->filter()->unique()->values()->all())->get()->keyBy('id');
+        $contentsByCourseId = collect($courseContent)->groupBy('course_id');
         $coursesById = [];
-        if ($courseServiceBase && !empty($courseIds)) {
-            $res = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
-                'ids' => $courseIds
-            ]);
-            if ($res->successful()) {
-                $coursesById = collect($res->json('data') ?? [])->keyBy('id')->all();
-            }
+        foreach ($courses as $c) {
+            $coursesById[$c->id] = [
+                'id' => $c->id,
+                'title' => $c->title,
+                'short_description' => $c->short_description,
+                'description' => $c->description,
+                'teacher_id' => $c->teacher_id,
+                'category' => $c->category,
+                'price' => $c->price,
+                'created_at' => $c->created_at,
+                'updated_at' => $c->updated_at,
+                'course_content' => array_values(array_map(function ($cc) {
+                    return [
+                        'id' => $cc->id,
+                        'course_id' => $cc->course_id,
+                        'title' => $cc->title,
+                        'body' => $cc->body,
+                        'order' => $cc->order,
+                        'created_at' => $cc->created_at,
+                        'updated_at' => $cc->updated_at,
+                    ];
+                }, ($contentsByCourseId[$c->id] ?? collect())->all())),
+                'teacher' => ($c->teacher_id && isset($teachers[$c->teacher_id])) ? (array) $teachers[$c->teacher_id] : null,
+            ];
         }
 
-        $studentsById = [];
-        if ($userServiceBase && !empty($studentIds)) {
-            $userRes = Http::retry(2, 200)->timeout(5)->post(rtrim($userServiceBase, '/').'/api/users/by-ids', [
-                'ids' => $studentIds
-            ]);
-            if ($userRes->successful()) {
-                $studentsById = collect($userRes->json('data') ?? [])->keyBy('id')->all();
-            }
-        }
+        $studentsById = DB::table('users')->whereIn('id', $studentIds)->get()->keyBy('id');
 
         $data = $enroll->map(function ($enr) use ($coursesById, $studentsById) {
             $arr = $enr->toArray();
             $arr['course'] = $coursesById[$enr->course_id] ?? null;
-            $arr['student'] = $studentsById[$enr->student_id] ?? null;
+            $arr['student'] = isset($studentsById[$enr->student_id]) ? (array) $studentsById[$enr->student_id] : null;
             return $arr;
         });
 
@@ -182,24 +193,41 @@ class EnrollmentController extends Controller
 
         $courseIds = $enroll->pluck('course_id')->unique()->values()->all();
 
-        $courseServiceBase = config('services.courses.url');
-        $courses = [];
-        if ($courseServiceBase && !empty($courseIds)) {
-            $res = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
-                'ids' => $courseIds
-            ]);
-            if ($res->successful()) {
-                $courses = $res->json('data') ?? [];
-            }
-        }
-        if (empty($courses)) {
-            $courses = array_map(function ($id) { return ['id' => $id]; }, $courseIds);
+        $courses = DB::table('courses')->whereIn('id', $courseIds)->get();
+        $courseContent = DB::table('course_contents')->whereIn('course_id', $courseIds)->orderBy('order')->get();
+        $teachers = DB::table('users')->whereIn('id', $courses->pluck('teacher_id')->filter()->unique()->values()->all())->get()->keyBy('id');
+        $contentsByCourseId = collect($courseContent)->groupBy('course_id');
+        $coursesOut = [];
+        foreach ($courses as $c) {
+            $coursesOut[] = [
+                'id' => $c->id,
+                'title' => $c->title,
+                'short_description' => $c->short_description,
+                'description' => $c->description,
+                'teacher_id' => $c->teacher_id,
+                'category' => $c->category,
+                'price' => $c->price,
+                'created_at' => $c->created_at,
+                'updated_at' => $c->updated_at,
+                'course_content' => array_values(array_map(function ($cc) {
+                    return [
+                        'id' => $cc->id,
+                        'course_id' => $cc->course_id,
+                        'title' => $cc->title,
+                        'body' => $cc->body,
+                        'order' => $cc->order,
+                        'created_at' => $cc->created_at,
+                        'updated_at' => $cc->updated_at,
+                    ];
+                }, ($contentsByCourseId[$c->id] ?? collect())->all())),
+                'teacher' => ($c->teacher_id && isset($teachers[$c->teacher_id])) ? (array) $teachers[$c->teacher_id] : null,
+            ];
         }
 
         return response()->json([
             'message' => 'Enrolled Courses',
             'data' => $enroll,
-            'courses' => $courses
+            'courses' => $coursesOut
         ]);
     }
 
@@ -213,19 +241,7 @@ class EnrollmentController extends Controller
 
         $courseIds = $enrollmentRecords->pluck('course_id')->unique()->values()->all();
 
-        $courseServiceBase = config('services.courses.url');
-        $courses = [];
-        if ($courseServiceBase && !empty($courseIds)) {
-            $res = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
-                'ids' => $courseIds
-            ]);
-            if ($res->successful()) {
-                $courses = $res->json('data') ?? [];
-            }
-        }
-        if (empty($courses)) {
-            $courses = array_map(function ($id) { return ['id' => $id]; }, $courseIds);
-        }
+        $courses = DB::table('courses')->whereIn('id', $courseIds)->get();
 
         return response()->json(['data' => $courses], 200);
     }
@@ -247,33 +263,43 @@ class EnrollmentController extends Controller
 
         $enrollments = Enrollment::whereIn('course_id', $courseIds)->get();
 
-        $userServiceBase = config('services.users.url');
-        $courseServiceBase = config('services.courses.url');
-
         $studentIds = $enrollments->pluck('student_id')->unique()->values()->all();
-        $studentsById = [];
-        if ($userServiceBase && !empty($studentIds)) {
-            $userRes = Http::retry(2, 200)->timeout(5)->post(rtrim($userServiceBase, '/').'/api/users/by-ids', [
-                'ids' => $studentIds
-            ]);
-            if ($userRes->successful()) {
-                $studentsById = collect($userRes->json('data') ?? [])->keyBy('id')->all();
-            }
-        }
+        $studentsById = DB::table('users')->whereIn('id', $studentIds)->get()->keyBy('id');
 
+        $courses = DB::table('courses')->whereIn('id', $courseIds)->get();
+        $courseContent = DB::table('course_contents')->whereIn('course_id', $courseIds)->orderBy('order')->get();
+        $teachers = DB::table('users')->whereIn('id', $courses->pluck('teacher_id')->filter()->unique()->values()->all())->get()->keyBy('id');
+        $contentsByCourseId = collect($courseContent)->groupBy('course_id');
         $coursesById = [];
-        if ($courseServiceBase && !empty($courseIds)) {
-            $courseRes = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
-                'ids' => $courseIds
-            ]);
-            if ($courseRes->successful()) {
-                $coursesById = collect($courseRes->json('data') ?? [])->keyBy('id')->all();
-            }
+        foreach ($courses as $c) {
+            $coursesById[$c->id] = [
+                'id' => $c->id,
+                'title' => $c->title,
+                'short_description' => $c->short_description,
+                'description' => $c->description,
+                'teacher_id' => $c->teacher_id,
+                'category' => $c->category,
+                'price' => $c->price,
+                'created_at' => $c->created_at,
+                'updated_at' => $c->updated_at,
+                'course_content' => array_values(array_map(function ($cc) {
+                    return [
+                        'id' => $cc->id,
+                        'course_id' => $cc->course_id,
+                        'title' => $cc->title,
+                        'body' => $cc->body,
+                        'order' => $cc->order,
+                        'created_at' => $cc->created_at,
+                        'updated_at' => $cc->updated_at,
+                    ];
+                }, ($contentsByCourseId[$c->id] ?? collect())->all())),
+                'teacher' => ($c->teacher_id && isset($teachers[$c->teacher_id])) ? (array) $teachers[$c->teacher_id] : null,
+            ];
         }
 
         $data = $enrollments->map(function ($enr) use ($studentsById, $coursesById) {
             $arr = $enr->toArray();
-            $arr['user'] = $studentsById[$enr->student_id] ?? null;
+            $arr['user'] = isset($studentsById[$enr->student_id]) ? (array) $studentsById[$enr->student_id] : null;
             $arr['course'] = $coursesById[$enr->course_id] ?? null;
             return $arr;
         });

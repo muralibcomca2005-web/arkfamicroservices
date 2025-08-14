@@ -8,7 +8,7 @@ use App\Models\CourseContent;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 
 class CourseController extends Controller
 {
@@ -113,7 +113,6 @@ class CourseController extends Controller
             ], 200);
         }
 
-        // $courseIds = explode(',', $courseIdsString);
         $courses = Course::whereIn('id', $courseIds)->with('courseContent')->get();
 
         return response()->json([
@@ -133,27 +132,16 @@ class CourseController extends Controller
 
     private function attachTeacherData($courses)
     {
-        $userServiceBase = config('services.users.url');
-        if (!$userServiceBase) {
-            return $courses;
-        }
-
         $teacherIds = collect($courses)->pluck('teacher_id')->filter()->unique()->values()->all();
         if (empty($teacherIds)) {
             return $courses;
         }
 
-        $res = Http::timeout(5)->post(rtrim($userServiceBase, '/').'/api/users/by-ids', [
-            'ids' => $teacherIds
-        ]);
-        $teachersById = [];
-        if ($res->successful()) {
-            $teachersById = collect($res->json('data') ?? [])->keyBy('id');
-        }
+        $teachersById = DB::table('users')->whereIn('id', $teacherIds)->get()->keyBy('id');
 
         return collect($courses)->map(function ($course) use ($teachersById) {
             $arr = $course->toArray();
-            $arr['teacher'] = $arr['teacher_id'] ? ($teachersById[$arr['teacher_id']] ?? null) : null;
+            $arr['teacher'] = $arr['teacher_id'] ? (isset($teachersById[$arr['teacher_id']]) ? (array) $teachersById[$arr['teacher_id']] : null) : null;
             return $arr;
         });
     }

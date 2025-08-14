@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -57,10 +58,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        $enrollmentServiceBase = config('services.enrollments.url');
-        $courseServiceBase = config('services.courses.url');
-
-        $coursesData = [];
+        $coursesDat
         try {
             $rows = DB::select(<<<'SQL'
                 select
