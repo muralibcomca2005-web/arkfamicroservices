@@ -19,8 +19,8 @@ return [
     ],
 
     'resend' => [
-        'key' => env('RESEND_KEY'),
-    ],
+		'key' => env('RESEND_KEY'),
+	],
 
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
@@ -33,6 +33,10 @@ return [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
+    ],
+
+    'courses' => [
+        'url' => env('COURSE_SERVICE_URL'),
     ],
 
 ];

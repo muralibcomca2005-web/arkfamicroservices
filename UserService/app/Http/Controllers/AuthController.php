@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 
 class AuthController extends Controller
 {
@@ -54,12 +55,30 @@ class AuthController extends Controller
     public function profile(Request $request)
     {
         $user = $request->user();
-        $enrolledCourses = $user->enrolledCourses()->with('courseContent', 'teacher.user')->get();
+
+        $enrollmentServiceBase = config('services.enrollments.url');
+        $courseServiceBase = config('services.courses.url');
+
+        $coursesData = [];
+        if ($enrollmentServiceBase && $courseServiceBase) {
+            $enrollRes = Http::timeout(5)->get(rtrim($enrollmentServiceBase, '/').'/api/enrolled-courses/'.$user->id);
+            if ($enrollRes->successful()) {
+                $courseIds = collect($enrollRes->json('data') ?? [])->pluck('id')->values()->all();
+                if (!empty($courseIds)) {
+                    $coursesRes = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
+                        'ids' => $courseIds
+                    ]);
+                    if ($coursesRes->successful()) {
+                        $coursesData = $coursesRes->json('data') ?? [];
+                    }
+                }
+            }
+        }
 
         return response()->json([
             'message' => 'User retrieved successfully',
             'user' => $user->load('student', 'teacher'),
-            'enrolledCourses' => $enrolledCourses
+            'enrolledCourses' => $coursesData
         ], 200);
     }
 }

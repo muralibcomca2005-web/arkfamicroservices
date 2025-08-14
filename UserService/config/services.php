@@ -34,8 +34,11 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
-    'enrollments' => [
+        'enrollments' => [
         'url' => env('ENROLLMENT_SERVICE_URL')
+    ],
+    'courses' => [
+        'url' => env('COURSE_SERVICE_URL')
     ]
-
+ 
 ];

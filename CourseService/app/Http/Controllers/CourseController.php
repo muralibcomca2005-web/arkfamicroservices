@@ -120,7 +120,7 @@ class CourseController extends Controller
         }
 
         // $courseIds = explode(',', $courseIdsString);
-        $courses = Course::whereIn('id', $courseIds)->get();
+        $courses = Course::whereIn('id', $courseIds)->with('courseContent', 'teacher.user')->get();
 
         return response()->json([
             'message' => 'Courses fetched successfully',

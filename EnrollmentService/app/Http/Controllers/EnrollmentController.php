@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
+
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\User;
@@ -124,5 +126,30 @@ class EnrollmentController extends Controller
         $courses = Course::whereIn('id', $courseIds)->get();
 
         return response()->json(['data' => $courses], 200);
+    }
+
+    public function getEnrollmentsByCourseIds(Request $request)
+    {
+        $courseIds = $request->query('ids', []);
+        if (!is_array($courseIds)) {
+            $courseIds = [$courseIds];
+        }
+        $courseIds = array_filter(array_map('intval', $courseIds));
+
+        if (empty($courseIds)) {
+            return response()->json([
+                'message' => 'No course IDs provided.',
+                'data' => []
+            ], 200);
+        }
+
+        $enrollments = Enrollment::whereIn('course_id', $courseIds)
+            ->with(['user.student', 'course'])
+            ->get();
+
+        return response()->json([
+            'message' => 'Enrollments fetched successfully',
+            'data' => $enrollments
+        ], 200);
     }
 }

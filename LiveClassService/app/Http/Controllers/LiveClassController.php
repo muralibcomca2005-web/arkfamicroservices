@@ -6,6 +6,7 @@ use App\Models\Attendance;
 use App\Models\LiveClass;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 class LiveClassController extends Controller
 {
@@ -42,9 +43,30 @@ class LiveClassController extends Controller
             ], 200);
         }
 
+        $courseServiceBase = config('services.courses.url');
+        $coursesById = [];
+        if ($courseServiceBase) {
+            $courseIds = $liveClass->pluck('course_id')->unique()->values()->all();
+            if (!empty($courseIds)) {
+                $res = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
+                    'ids' => $courseIds
+                ]);
+                if ($res->successful()) {
+                    $courses = $res->json('data') ?? [];
+                    $coursesById = collect($courses)->keyBy('id')->all();
+                }
+            }
+        }
+
+        $transformed = $liveClass->map(function ($cls) use ($coursesById) {
+            $arr = $cls->toArray();
+            $arr['course'] = $coursesById[$cls->course_id] ?? null;
+            return $arr;
+        });
+
         return response()->json([
             'message' => 'Classes retrieved successfully',
-            'data' => $liveClass->load('course.teacher.user')
+            'data' => $transformed
         ], 200);
     }
 
@@ -52,9 +74,30 @@ class LiveClassController extends Controller
     {
         $liveClass = LiveClass::all();
 
+        $courseServiceBase = config('services.courses.url');
+        $coursesById = [];
+        if ($courseServiceBase) {
+            $courseIds = $liveClass->pluck('course_id')->unique()->values()->all();
+            if (!empty($courseIds)) {
+                $res = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
+                    'ids' => $courseIds
+                ]);
+                if ($res->successful()) {
+                    $courses = $res->json('data') ?? [];
+                    $coursesById = collect($courses)->keyBy('id')->all();
+                }
+            }
+        }
+
+        $transformed = $liveClass->map(function ($cls) use ($coursesById) {
+            $arr = $cls->toArray();
+            $arr['course'] = $coursesById[$cls->course_id] ?? null;
+            return $arr;
+        });
+
         return response()->json([
             'message' => 'All Scheduled Classes retrieved',
-            'data' => $liveClass->load('course.teacher.user')
+            'data' => $transformed
         ], 200);
     }
 
@@ -79,6 +122,29 @@ class LiveClassController extends Controller
         return response()->json([
             'message' => 'Class ended successfully',
             'data' => $liveClass
+        ], 200);
+    }
+
+    public function getByIds(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        if (!is_array($ids)) {
+            $ids = [$ids];
+        }
+        $ids = array_filter(array_map('intval', $ids));
+
+        if (empty($ids)) {
+            return response()->json([
+                'message' => 'No class IDs provided',
+                'data' => []
+            ], 200);
+        }
+
+        $classes = LiveClass::whereIn('id', $ids)->get();
+
+        return response()->json([
+            'message' => 'Live classes fetched successfully',
+            'data' => $classes
         ], 200);
     }
 }

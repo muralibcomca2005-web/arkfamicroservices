@@ -8,6 +8,7 @@ use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Http;
 
 class TeacherController extends Controller
 {
@@ -71,7 +72,15 @@ class TeacherController extends Controller
             ], 404);
         }
 
-        $courses = $teacher->courses()->with('courseContent')->get();
+        $courseServiceBase = config('services.courses.url');
+
+        $courses = [];
+        if ($courseServiceBase) {
+            $res = Http::timeout(5)->get(rtrim($courseServiceBase, '/').'/api/teacher-courses/'.$teacher->user_id);
+            if ($res->successful()) {
+                $courses = $res->json('data') ?? [];
+            }
+        }
 
         return response()->json([
             'message' => 'Assigned Course retrieved',
@@ -89,9 +98,24 @@ class TeacherController extends Controller
             ], 404);
         }
 
-        $courseId = $teacher->courses()->pluck('id');
+        $courseServiceBase = config('services.courses.url');
+        $enrollmentServiceBase = config('services.enrollments.url');
 
-        $enrollments = Enrollment::with(['user.student', 'course'])->whereIn('course_id', $courseId)->get();
+        $enrollments = [];
+        if ($courseServiceBase && $enrollmentServiceBase) {
+            $coursesRes = Http::timeout(5)->get(rtrim($courseServiceBase, '/').'/api/teacher-courses/'.$teacher->user_id);
+            if ($coursesRes->successful()) {
+                $courseIds = collect($coursesRes->json('data') ?? [])->pluck('id')->values()->all();
+                if (!empty($courseIds)) {
+                    $enrollRes = Http::timeout(5)->get(rtrim($enrollmentServiceBase, '/').'/api/enrollments/by-course-ids', [
+                        'ids' => $courseIds
+                    ]);
+                    if ($enrollRes->successful()) {
+                        $enrollments = $enrollRes->json('data') ?? [];
+                    }
+                }
+            }
+        }
 
         return response()->json([
             'message' => 'Assigned students retrieved',
