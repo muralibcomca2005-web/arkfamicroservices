@@ -7,24 +7,15 @@ use Illuminate\Http\Request;
 
 use App\Models\Enrollment;
 
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Http;
+use Carbon\Carbon;\nuse Illuminate\Support\Facades\DB;
+
 
 
 class EnrollmentController extends Controller
 {
     public function enrollRequest($courseId, $stu_id)
     {
-        $courseServiceBase = config('services.courses.url');
-        $courseExists = false;
-        if ($courseServiceBase) {
-            $res = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
-                'ids' => [$courseId]
-            ]);
-            if ($res->successful()) {
-                $courseExists = !empty($res->json('data'));
-            }
-        }
+        $courseExists = DB::table('courses')->where('id', $courseId)->exists();
         if (!$courseExists) {
             return response()->json([
                 'message' => 'Course is not found'

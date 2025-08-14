@@ -7,7 +7,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::prefix('enrollment-service')->controller(EnrollmentController::class)->middleware(['auth:sanctum'])->name('enrollments.')->group(function () {
+Route::controller(EnrollmentController::class)->middleware(['auth:sanctum'])->name('enrollments.')->group(function () {
     Route::post('/courses/{course}/students/{student}', 'enrollRequest')->name('store');
     Route::patch('/{id}/approve', 'enrollStudent')->name('approve');
     Route::get('/students/{student}/courses', 'fetchEnrolledCourse')->name('student-courses');
