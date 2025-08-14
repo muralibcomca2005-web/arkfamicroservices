@@ -35,10 +35,10 @@ return [
         ],
     ],
         'enrollments' => [
-        'url' => env('ENROLLMENT_SERVICE_URL')
+        'url' => env('ENROLLMENT_SERVICE_URL', 'http://127.0.0.1:8003')
     ],
     'courses' => [
-        'url' => env('COURSE_SERVICE_URL')
+        'url' => env('COURSE_SERVICE_URL', 'http://127.0.0.1:8002')
     ]
  
 ];
