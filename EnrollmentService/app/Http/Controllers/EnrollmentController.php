@@ -192,6 +192,9 @@ class EnrollmentController extends Controller
                 $courses = $res->json('data') ?? [];
             }
         }
+        if (empty($courses)) {
+            $courses = array_map(function ($id) { return ['id' => $id]; }, $courseIds);
+        }
 
         return response()->json([
             'message' => 'Enrolled Courses',
@@ -219,6 +222,9 @@ class EnrollmentController extends Controller
             if ($res->successful()) {
                 $courses = $res->json('data') ?? [];
             }
+        }
+        if (empty($courses)) {
+            $courses = array_map(function ($id) { return ['id' => $id]; }, $courseIds);
         }
 
         return response()->json(['data' => $courses], 200);
