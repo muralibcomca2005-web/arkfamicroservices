@@ -8,6 +8,7 @@ use App\Models\CourseContent;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Http;
 
 class CourseController extends Controller
 {
@@ -55,7 +56,7 @@ class CourseController extends Controller
 
         return response()->json([
             'message' => 'Courses retrieved Successfully',
-            'data' => $courses
+            'data' => $this->attachTeacherData($courses)
         ]);
     }
 
@@ -117,7 +118,7 @@ class CourseController extends Controller
 
         return response()->json([
             'message' => 'Courses fetched successfully',
-            'data' => $courses
+            'data' => $this->attachTeacherData($courses)
         ], 200,);
     }
 
@@ -126,7 +127,34 @@ class CourseController extends Controller
         $courses = Course::where('teacher_id', $tchId)->with('courseContent')->get();
         return response()->json([
             'message' => 'Courses fetched successfully',
-            'data' => $courses
+            'data' => $this->attachTeacherData($courses)
         ], 200);
+    }
+
+    private function attachTeacherData($courses)
+    {
+        $userServiceBase = config('services.users.url');
+        if (!$userServiceBase) {
+            return $courses;
+        }
+
+        $teacherIds = collect($courses)->pluck('teacher_id')->filter()->unique()->values()->all();
+        if (empty($teacherIds)) {
+            return $courses;
+        }
+
+        $res = Http::timeout(5)->post(rtrim($userServiceBase, '/').'/api/users/by-ids', [
+            'ids' => $teacherIds
+        ]);
+        $teachersById = [];
+        if ($res->successful()) {
+            $teachersById = collect($res->json('data') ?? [])->keyBy('id');
+        }
+
+        return collect($courses)->map(function ($course) use ($teachersById) {
+            $arr = $course->toArray();
+            $arr['teacher'] = $arr['teacher_id'] ? ($teachersById[$arr['teacher_id']] ?? null) : null;
+            return $arr;
+        });
     }
 }

@@ -74,9 +74,42 @@ class EnrollmentController extends Controller
             ], 404);
         }
 
+        $courseIds = $enroll->pluck('course_id')->unique()->values()->all();
+        $studentIds = $enroll->pluck('student_id')->unique()->values()->all();
+
+        $courseServiceBase = config('services.courses.url');
+        $userServiceBase = config('services.users.url');
+
+        $coursesById = [];
+        if ($courseServiceBase && !empty($courseIds)) {
+            $res = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
+                'ids' => $courseIds
+            ]);
+            if ($res->successful()) {
+                $coursesById = collect($res->json('data') ?? [])->keyBy('id')->all();
+            }
+        }
+
+        $studentsById = [];
+        if ($userServiceBase && !empty($studentIds)) {
+            $userRes = Http::timeout(5)->post(rtrim($userServiceBase, '/').'/api/users/by-ids', [
+                'ids' => $studentIds
+            ]);
+            if ($userRes->successful()) {
+                $studentsById = collect($userRes->json('data') ?? [])->keyBy('id')->all();
+            }
+        }
+
+        $data = $enroll->map(function ($enr) use ($coursesById, $studentsById) {
+            $arr = $enr->toArray();
+            $arr['course'] = $coursesById[$enr->course_id] ?? null;
+            $arr['student'] = $studentsById[$enr->student_id] ?? null;
+            return $arr;
+        });
+
         return response()->json([
             'message' => 'Pending Courses',
-            'data' => $enroll,
+            'data' => $data,
         ]);
     }
 
@@ -89,9 +122,42 @@ class EnrollmentController extends Controller
             ], 404);
         }
 
+        $courseIds = $enroll->pluck('course_id')->unique()->values()->all();
+        $studentIds = $enroll->pluck('student_id')->unique()->values()->all();
+
+        $courseServiceBase = config('services.courses.url');
+        $userServiceBase = config('services.users.url');
+
+        $coursesById = [];
+        if ($courseServiceBase && !empty($courseIds)) {
+            $res = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
+                'ids' => $courseIds
+            ]);
+            if ($res->successful()) {
+                $coursesById = collect($res->json('data') ?? [])->keyBy('id')->all();
+            }
+        }
+
+        $studentsById = [];
+        if ($userServiceBase && !empty($studentIds)) {
+            $userRes = Http::timeout(5)->post(rtrim($userServiceBase, '/').'/api/users/by-ids', [
+                'ids' => $studentIds
+            ]);
+            if ($userRes->successful()) {
+                $studentsById = collect($userRes->json('data') ?? [])->keyBy('id')->all();
+            }
+        }
+
+        $data = $enroll->map(function ($enr) use ($coursesById, $studentsById) {
+            $arr = $enr->toArray();
+            $arr['course'] = $coursesById[$enr->course_id] ?? null;
+            $arr['student'] = $studentsById[$enr->student_id] ?? null;
+            return $arr;
+        });
+
         return response()->json([
             'message' => 'Pending Courses',
-            'data' => $enroll,
+            'data' => $data,
         ]);
     }
 
