@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 
@@ -57,8 +58,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        $coursesData = [];
-
+        $coursesDat
         try {
             $rows = DB::select(<<<'SQL'
                 select

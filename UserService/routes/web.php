@@ -11,8 +11,8 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/sanctum/csrf-cookie', [CsrfCookieController::class, 'show']);
 
+Route::get('/sanctum/csrf-cookie', [CsrfCookieController::class, 'show']);
 Route::post('/students', [StudentController::class, 'addStudent'])->name('students.register');
 
 Route::controller(AuthController::class)->group(function () {
@@ -28,7 +28,15 @@ Route::controller(TeacherController::class)->prefix('teachers')->name('teachers.
     Route::get('/{teacher}/students', 'fetchAssignedStudents')->name('students');
 });
 
-Route::controller(UserController::class)->prefix('users')->name('users.')->group(function () {
-    Route::get('/', 'fetchUsers')->name('index');
-    Route::post('/', 'addAdmin')->name('store');
+   Route::controller(TeacherController::class)->prefix('teachers')->name('teachers.')->group(function () {
+        Route::get('/', 'fetchTeachers')->name('index');
+        Route::post('/', 'addTeacher')->name('store');
+        Route::get('/{teacher}/courses', 'fetchAssignedCourses')->name('courses');
+        Route::get('/{teacher}/students', 'fetchAssignedStudents')->name('students');
+    });
+
+    Route::controller(UserController::class)->prefix('users')->name('users.')->group(function () {
+        Route::get('/', 'fetchUsers')->name('index');
+        Route::post('/', 'addAdmin')->name('store');
+    });
 });
