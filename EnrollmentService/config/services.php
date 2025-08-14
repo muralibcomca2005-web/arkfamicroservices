@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'users' => [
+        'url' => env('USER_SERVICE_URL')
+    ],
+    'courses' => [
+        'url' => env('COURSE_SERVICE_URL')
+    ],
+
 ];

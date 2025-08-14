@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreCourseRequest;
 use App\Models\Course;
 use App\Models\CourseContent;
-use App\Models\Teacher;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
@@ -45,7 +45,7 @@ class CourseController extends Controller
 
     public function fetchCourse()
     {
-        $courses = Course::with('courseContent', 'teacher.user')->orderBy('id', 'asc')->get();
+        $courses = Course::with('courseContent')->orderBy('id', 'asc')->get();
 
         if ($courses->isEmpty()) {
             return response()->json([
@@ -69,17 +69,10 @@ class CourseController extends Controller
         $course = Course::findOrFail($id);
 
         $data = $request->validate([
-            'teacher_id' => 'required|integer'
+            'teacher_id' => 'required|integer|min:1'
         ]);
 
-        $teacher = Teacher::find($data['teacher_id']);
-
-        if (!$teacher) {
-            return response()->json([
-                'message' => 'Invalid Teacher ID'
-            ], 404);
-        }
-
+        // Optionally validate teacher via User Service
         $course->teacher_id = $data['teacher_id'];
         $course->save();
 
@@ -120,7 +113,7 @@ class CourseController extends Controller
         }
 
         // $courseIds = explode(',', $courseIdsString);
-        $courses = Course::whereIn('id', $courseIds)->with('courseContent', 'teacher.user')->get();
+        $courses = Course::whereIn('id', $courseIds)->with('courseContent')->get();
 
         return response()->json([
             'message' => 'Courses fetched successfully',

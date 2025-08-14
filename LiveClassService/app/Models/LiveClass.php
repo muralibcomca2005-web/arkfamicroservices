@@ -11,12 +11,4 @@ class LiveClass extends Model
     use HasFactory;
 
     protected $fillable = ['course_id', 'topic', 'meeting_link', 'scheduled_at', 'class_ended'];
-
-    public function course(){
-        return $this->belongsTo(Course::class);
-    }
-
-    public function attendance() {
-        return $this->hasMany(Attendance::class);
-    }
 }

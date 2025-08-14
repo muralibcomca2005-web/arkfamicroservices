@@ -4,18 +4,28 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 
-use App\Models\Course;
+
 use App\Models\Enrollment;
-use App\Models\User;
+
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+
 
 class EnrollmentController extends Controller
 {
     public function enrollRequest($courseId, $stu_id)
     {
-        $course = Course::find($courseId);
-        if (!$course) {
+        $courseServiceBase = config('services.courses.url');
+        $courseExists = false;
+        if ($courseServiceBase) {
+            $res = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
+                'ids' => [$courseId]
+            ]);
+            if ($res->successful()) {
+                $courseExists = !empty($res->json('data'));
+            }
+        }
+        if (!$courseExists) {
             return response()->json([
                 'message' => 'Course is not found'
             ], 404);
@@ -57,7 +67,7 @@ class EnrollmentController extends Controller
 
     public function fetchPendingRequest($id)
     {
-        $enroll = Enrollment::where('student_id', $id)->where('status', 'pending')->with(['user.student', 'course.courseContent'])->get();
+        $enroll = Enrollment::where('student_id', $id)->where('status', 'pending')->get();
         if ($enroll->isEmpty()) {
             return response()->json([
                 'message' => "There is no pending course requests"
@@ -72,7 +82,7 @@ class EnrollmentController extends Controller
 
     public function fetchAllPendingRequest()
     {
-        $enroll = Enrollment::where('status', 'pending')->with(['user.student', 'course.courseContent'])->get();
+        $enroll = Enrollment::where('status', 'pending')->get();
         if ($enroll->isEmpty()) {
             return response()->json([
                 'message' => "There is no pending course requests"
@@ -104,8 +114,18 @@ class EnrollmentController extends Controller
             ], 404);
         }
 
-        $courseIds = $enroll->pluck('course_id')->unique();
-        $courses = Course::whereIn('id', $courseIds)->with('courseContent')->get();
+        $courseIds = $enroll->pluck('course_id')->unique()->values()->all();
+
+        $courseServiceBase = config('services.courses.url');
+        $courses = [];
+        if ($courseServiceBase && !empty($courseIds)) {
+            $res = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
+                'ids' => $courseIds
+            ]);
+            if ($res->successful()) {
+                $courses = $res->json('data') ?? [];
+            }
+        }
 
         return response()->json([
             'message' => 'Enrolled Courses',
@@ -122,8 +142,18 @@ class EnrollmentController extends Controller
             return response()->json(['data' => []], 200);
         }
 
-        $courseIds = $enrollmentRecords->pluck('course_id')->unique();
-        $courses = Course::whereIn('id', $courseIds)->get();
+        $courseIds = $enrollmentRecords->pluck('course_id')->unique()->values()->all();
+
+        $courseServiceBase = config('services.courses.url');
+        $courses = [];
+        if ($courseServiceBase && !empty($courseIds)) {
+            $res = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
+                'ids' => $courseIds
+            ]);
+            if ($res->successful()) {
+                $courses = $res->json('data') ?? [];
+            }
+        }
 
         return response()->json(['data' => $courses], 200);
     }
@@ -143,13 +173,42 @@ class EnrollmentController extends Controller
             ], 200);
         }
 
-        $enrollments = Enrollment::whereIn('course_id', $courseIds)
-            ->with(['user.student', 'course'])
-            ->get();
+        $enrollments = Enrollment::whereIn('course_id', $courseIds)->get();
+
+        $userServiceBase = config('services.users.url');
+        $courseServiceBase = config('services.courses.url');
+
+        $studentIds = $enrollments->pluck('student_id')->unique()->values()->all();
+        $studentsById = [];
+        if ($userServiceBase && !empty($studentIds)) {
+            $userRes = Http::timeout(5)->post(rtrim($userServiceBase, '/').'/api/users/by-ids', [
+                'ids' => $studentIds
+            ]);
+            if ($userRes->successful()) {
+                $studentsById = collect($userRes->json('data') ?? [])->keyBy('id')->all();
+            }
+        }
+
+        $coursesById = [];
+        if ($courseServiceBase && !empty($courseIds)) {
+            $courseRes = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
+                'ids' => $courseIds
+            ]);
+            if ($courseRes->successful()) {
+                $coursesById = collect($courseRes->json('data') ?? [])->keyBy('id')->all();
+            }
+        }
+
+        $data = $enrollments->map(function ($enr) use ($studentsById, $coursesById) {
+            $arr = $enr->toArray();
+            $arr['user'] = $studentsById[$enr->student_id] ?? null;
+            $arr['course'] = $coursesById[$enr->course_id] ?? null;
+            return $arr;
+        });
 
         return response()->json([
             'message' => 'Enrollments fetched successfully',
-            'data' => $enrollments
+            'data' => $data
         ], 200);
     }
 }
