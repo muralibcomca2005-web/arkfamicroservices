@@ -76,7 +76,7 @@ class TeacherController extends Controller
 
         $courses = [];
         if ($courseServiceBase) {
-            $res = Http::timeout(5)->get(rtrim($courseServiceBase, '/').'/api/teacher-courses/'.$teacher->user_id);
+            $res = Http::retry(2, 200)->timeout(5)->get(rtrim($courseServiceBase, '/').'/api/teacher-courses/'.$teacher->user_id);
             if ($res->successful()) {
                 $courses = $res->json('data') ?? [];
             }
@@ -103,11 +103,11 @@ class TeacherController extends Controller
 
         $enrollments = [];
         if ($courseServiceBase && $enrollmentServiceBase) {
-            $coursesRes = Http::timeout(5)->get(rtrim($courseServiceBase, '/').'/api/teacher-courses/'.$teacher->user_id);
+            $coursesRes = Http::retry(2, 200)->timeout(5)->get(rtrim($courseServiceBase, '/').'/api/teacher-courses/'.$teacher->user_id);
             if ($coursesRes->successful()) {
                 $courseIds = collect($coursesRes->json('data') ?? [])->pluck('id')->values()->all();
                 if (!empty($courseIds)) {
-                    $enrollRes = Http::timeout(5)->get(rtrim($enrollmentServiceBase, '/').'/api/enrollments/by-course-ids', [
+                    $enrollRes = Http::retry(2, 200)->timeout(5)->get(rtrim($enrollmentServiceBase, '/').'/api/enrollments/by-course-ids', [
                         'ids' => $courseIds
                     ]);
                     if ($enrollRes->successful()) {

@@ -18,7 +18,7 @@ class EnrollmentController extends Controller
         $courseServiceBase = config('services.courses.url');
         $courseExists = false;
         if ($courseServiceBase) {
-            $res = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
+            $res = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
                 'ids' => [$courseId]
             ]);
             if ($res->successful()) {
@@ -82,7 +82,7 @@ class EnrollmentController extends Controller
 
         $coursesById = [];
         if ($courseServiceBase && !empty($courseIds)) {
-            $res = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
+            $res = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
                 'ids' => $courseIds
             ]);
             if ($res->successful()) {
@@ -92,7 +92,7 @@ class EnrollmentController extends Controller
 
         $studentsById = [];
         if ($userServiceBase && !empty($studentIds)) {
-            $userRes = Http::timeout(5)->post(rtrim($userServiceBase, '/').'/api/users/by-ids', [
+            $userRes = Http::retry(2, 200)->timeout(5)->post(rtrim($userServiceBase, '/').'/api/users/by-ids', [
                 'ids' => $studentIds
             ]);
             if ($userRes->successful()) {
@@ -130,7 +130,7 @@ class EnrollmentController extends Controller
 
         $coursesById = [];
         if ($courseServiceBase && !empty($courseIds)) {
-            $res = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
+            $res = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
                 'ids' => $courseIds
             ]);
             if ($res->successful()) {
@@ -140,7 +140,7 @@ class EnrollmentController extends Controller
 
         $studentsById = [];
         if ($userServiceBase && !empty($studentIds)) {
-            $userRes = Http::timeout(5)->post(rtrim($userServiceBase, '/').'/api/users/by-ids', [
+            $userRes = Http::retry(2, 200)->timeout(5)->post(rtrim($userServiceBase, '/').'/api/users/by-ids', [
                 'ids' => $studentIds
             ]);
             if ($userRes->successful()) {
@@ -185,7 +185,7 @@ class EnrollmentController extends Controller
         $courseServiceBase = config('services.courses.url');
         $courses = [];
         if ($courseServiceBase && !empty($courseIds)) {
-            $res = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
+            $res = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
                 'ids' => $courseIds
             ]);
             if ($res->successful()) {
@@ -213,7 +213,7 @@ class EnrollmentController extends Controller
         $courseServiceBase = config('services.courses.url');
         $courses = [];
         if ($courseServiceBase && !empty($courseIds)) {
-            $res = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
+            $res = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
                 'ids' => $courseIds
             ]);
             if ($res->successful()) {
@@ -247,7 +247,7 @@ class EnrollmentController extends Controller
         $studentIds = $enrollments->pluck('student_id')->unique()->values()->all();
         $studentsById = [];
         if ($userServiceBase && !empty($studentIds)) {
-            $userRes = Http::timeout(5)->post(rtrim($userServiceBase, '/').'/api/users/by-ids', [
+            $userRes = Http::retry(2, 200)->timeout(5)->post(rtrim($userServiceBase, '/').'/api/users/by-ids', [
                 'ids' => $studentIds
             ]);
             if ($userRes->successful()) {
@@ -257,7 +257,7 @@ class EnrollmentController extends Controller
 
         $coursesById = [];
         if ($courseServiceBase && !empty($courseIds)) {
-            $courseRes = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
+            $courseRes = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
                 'ids' => $courseIds
             ]);
             if ($courseRes->successful()) {

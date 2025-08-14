@@ -61,17 +61,21 @@ class AuthController extends Controller
 
         $coursesData = [];
         if ($enrollmentServiceBase && $courseServiceBase) {
-            $enrollRes = Http::timeout(5)->get(rtrim($enrollmentServiceBase, '/').'/api/enrolled-courses/'.$user->id);
-            if ($enrollRes->successful()) {
-                $courseIds = collect($enrollRes->json('data') ?? [])->pluck('id')->values()->all();
-                if (!empty($courseIds)) {
-                    $coursesRes = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
-                        'ids' => $courseIds
-                    ]);
-                    if ($coursesRes->successful()) {
-                        $coursesData = $coursesRes->json('data') ?? [];
+            try {
+                $enrollRes = Http::retry(2, 200)->timeout(5)->get(rtrim($enrollmentServiceBase, '/').'/api/enrolled-courses/'.$user->id);
+                if ($enrollRes->successful()) {
+                    $courseIds = collect($enrollRes->json('data') ?? [])->pluck('id')->values()->all();
+                    if (!empty($courseIds)) {
+                        $coursesRes = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
+                            'ids' => $courseIds
+                        ]);
+                        if ($coursesRes->successful()) {
+                            $coursesData = $coursesRes->json('data') ?? [];
+                        }
                     }
                 }
+            } catch (\Throwable $e) {
+                // swallow to keep profile working even if downstream is down
             }
         }
 

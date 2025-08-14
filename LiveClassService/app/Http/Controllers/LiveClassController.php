@@ -48,7 +48,7 @@ class LiveClassController extends Controller
         if ($courseServiceBase) {
             $courseIds = $liveClass->pluck('course_id')->unique()->values()->all();
             if (!empty($courseIds)) {
-                $res = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
+                $res = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
                     'ids' => $courseIds
                 ]);
                 if ($res->successful()) {
@@ -79,7 +79,7 @@ class LiveClassController extends Controller
         if ($courseServiceBase) {
             $courseIds = $liveClass->pluck('course_id')->unique()->values()->all();
             if (!empty($courseIds)) {
-                $res = Http::timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
+                $res = Http::retry(2, 200)->timeout(5)->post(rtrim($courseServiceBase, '/').'/api/courses', [
                     'ids' => $courseIds
                 ]);
                 if ($res->successful()) {
